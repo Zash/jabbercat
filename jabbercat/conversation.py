@@ -234,6 +234,7 @@ class MessageViewPageChannelObject(Qt.QObject):
     on_part = Qt.pyqtSignal(['QVariantMap'])
     on_flag = Qt.pyqtSignal(['QVariantMap'])
     on_request_html = Qt.pyqtSignal([])
+    on_button_clicked = Qt.pyqtSignal([str])
 
     @Qt.pyqtProperty(str, notify=on_font_family_changed)
     def font_family(self):
@@ -313,6 +314,11 @@ class MessageViewPageChannelObject(Qt.QObject):
             if not fut.done():
                 fut.cancel()
             raise
+
+    @Qt.pyqtSlot(str)
+    def button_clicked(self, value: str):
+        logger.debug("button clicked: {}".format(value))
+        self.on_button_clicked.emit(value)
 
 
 class MessageViewPage(Qt.QWebEnginePage):
@@ -747,6 +753,18 @@ class ConversationView(Qt.QWidget):
             self._history_view_context_menu
         )
         self.ui.history_frame.layout().addWidget(self.history_view)
+        self.history.channel.on_button_clicked.connect(self._button_click)
+
+    @utils.asyncify
+    async def _button_click(self, value: str):
+        logger.debug("how about sending the button click?")
+        msg = aioxmpp.Message(
+            type_=aioxmpp.MessageType.CHAT
+        )
+        msg.body[None] = value
+        logger.debug("trying to send {}".format(str(msg)))
+
+        await self._send_message_stanza(msg)
 
     def _history_view_context_menu(self, pos):
         cmd = self.history.contextMenuData()
@@ -1066,6 +1084,18 @@ class ConversationView(Qt.QWidget):
                         "image": {"url": oob_url},
                     }
                 )
+
+        if message.xepxxxx_buttons:
+            button = message.xepxxxx_buttons # uh, plural?
+            attachments.append(
+                {
+                    "type": "button",
+                    "button": {
+                        "label": button.label,
+                        "value" : button.value,
+                    }
+                }
+            )
 
         attachments.extend(urls_to_attachments(urls))
 

@@ -494,12 +494,28 @@ var add_image_attachment = function(message_item, image) {
     return null;
 };
 
+var add_button_attachment = function(message_item, button) {
+    var btn = document.createElement("button");
+    btn.name = "button"; // Hm, should buttons have names and ids?
+    btn.value = button["value"];
+    btn.textContent = button["label"];
+    btn.addEventListener("click", function() {
+        api_object.button_clicked(button["value"]);
+    });
+
+    message_get_content_el(message_item).appendChild(btn);
+
+    return null;
+}
+
 var add_attachment = function(message_item, attachment) {
     var type = attachment.type;
     if (type === "frame") {
         return add_frame_attachment(message_item, attachment.frame);
     } else if (type === "image") {
         return add_image_attachment(message_item, attachment.image);
+    } else if (type === "button") {
+        return add_button_attachment(message_item, attachment.button);
     } else {
         console.log("unsupported attachment type: "+type);
     }
